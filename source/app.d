@@ -6,6 +6,8 @@ import bindbc.sdl;
 import bindbc.common;
 import bindbc.loader;
 
+import raycast.init;
+
 int main()
 {
   auto ret = loadSDL();
@@ -46,6 +48,29 @@ int main()
 
 
   // Game Loop
+  SDL_Event event;
+  bool is_running = true;
+
+  RayCastWindow raywin = new RayCastWindow(renderer);
+  raywin.init_table();
+
+  while(is_running) {
+
+    while(SDL_PollEvent(&event)) {
+
+      if(event.type == SDL_QUIT) {
+	is_running = false;
+      }
+      
+    }
+    
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    
+    raywin.render();
+    
+    SDL_RenderPresent(renderer);
+  }
   
 
 

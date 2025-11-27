@@ -16,11 +16,12 @@ enum WALL_HEIGHT = 64;
 
 enum FOV = 60;
 
-enum ANGLE60    = WINDOW_WIDTH;
+enum ANGLE60    = PROJECTION_WIDTH;
 enum ANGLE30    = to!int(floor( ANGLE60 / 2.0f));
 enum ANGLE15    = to!int(floor( ANGLE30 / 2.0f));
 enum ANGLE90    = to!int(floor( ANGLE30 * 3.0f));
-enum ANGLE180   = to!int(floor( ANGLE90 * 3.0f));
+enum ANGLE180   = to!int(floor( ANGLE90 * 2.0f));
+enum ANGLE270   = to!int(floor( ANGLE90 * 3.0f));
 enum ANGLE360   = ANGLE60 * 6;
 enum ANGLE0     = 0;
 enum ANGLE5     = to!int(floor( ANGLE30 / 5.0f));
@@ -92,11 +93,11 @@ class RayCastWindow {
 
   float player_x;
   float player_y;
-  float player_arc;
+  int player_arc;
   float player_distance_to_projection_plane;
   float player_height;
   float player_speed;
-  float project_plance_y_center;
+  float project_plane_y_center;
 
   // keep player coordinates in the overhead map
   float player_map_x;
@@ -117,7 +118,7 @@ class RayCastWindow {
     
     this.player_x = 100.0f;
     this.player_y = 160.0f;
-    this.player_arc = to!float(ANGLE5 + ANGLE5);
+    this.player_arc = ANGLE5 + ANGLE5;
     this.player_distance_to_projection_plane = 277.0f; // 160 / tan(30 degree) = 277
     this.player_height = 32.0f;
     this.player_speed  = 16.0f;
@@ -195,7 +196,7 @@ class RayCastWindow {
     } //  for(i = 0; i <= ANGLE360; i++)
 
     // Create table for FISHBOWL distortion
-    for(i >= -ANGLE30; i <= ANGLE30; i++) {
+    for(i = -ANGLE30; i <= ANGLE30; i++) {
       radian = pix2rad( to!float(i));
       
       this.g_fish[i + ANGLE30] = 1.0f / cos(radian);
@@ -219,7 +220,7 @@ class RayCastWindow {
 	b = 255;
 	a = 255;
 
-	if(this.map[c][r] == 'W') {
+	if(this.map[row * MAP_WIDTH + col] == 'W') {
 	  // black color
 	  r = 0; 
 	  g = 0;
@@ -233,8 +234,8 @@ class RayCastWindow {
 	h: to!int( this.minimap_width)
 	};
 
-	SDL_SetRenderColor(this.renderer, r, g, b, a);
-	SDL_RenderFillRect(this.renderer, rect);
+	SDL_SetRenderDrawColor(this.renderer, r, g, b, a);
+	SDL_RenderFillRect(this.renderer, &rect);
       }
     }
 
@@ -245,13 +246,13 @@ class RayCastWindow {
 
   void draw_background() {
     // color of sky
-    int r = 255;
+    ubyte r = 255;
 
     int increment = 1;
 
     int row = 0;
     for(row = 0; row < PROJECTION_WIDTH / 2; row += increment) {
-      SDL_SetRenderColor(r, 125, 225, 255);
+      SDL_SetRenderDrawColor(this.renderer, r, 125, 225, 255);
       SDL_RenderDrawLine(this.renderer, 0, row, PROJECTION_WIDTH, row);
       r -= increment;
     }
@@ -259,7 +260,7 @@ class RayCastWindow {
     // color of ground 
     r = 22;
     for(; row < PROJECTION_WIDTH; row += increment) {
-      SDL_SetRenderColor(r, 20, 20, 255);
+      SDL_SetRenderDrawColor(this.renderer, r, 20, 20, 255);
       SDL_RenderDrawLine(this.renderer, 0, row, PROJECTION_WIDTH, row);
       r += increment;
     }
@@ -270,25 +271,27 @@ class RayCastWindow {
     // draw line from the player position to the positon where the ray
     // intersect with wall
 
-    SDL_SetRenderColor(0, 255, 0, 255);
-    SDL_RenderDrawLine(this.renderer, this.player_map_x, this.player_map_y, 
+    SDL_SetRenderDrawColor(this.renderer, 0, 255, 0, 255);
+    SDL_RenderDrawLine(this.renderer, 
+		       to!int(this.player_map_x), 
+		       to!int(this.player_map_y), 
 		       to!int(PROJECTION_WIDTH + (x * this.minimap_width) / TILE_SIZE),
 		       to!int(y * this.minimap_width / TILE_SIZE));
   } // end of draw_ray_on_overhead_map
 
-  void draw_player_POV_on_overhead_map(int x, int y) {
-    SDL_SetRenderColor(this.renderer, 255, 0, 0, 255);
+  void draw_player_POV_on_overhead_map() {
+    SDL_SetRenderDrawColor(this.renderer, 255, 0, 0, 255);
     SDL_RenderDrawLine(this.renderer, 
-		       this.player_map_x,
-		       this.player_map_y,
-		       this.player_map_x + this.cosine[ to!int(this.player_arc)] * 10,
-		       this.player_map_y + this.sine[ to!int(this.player_arc)] * 10);
+		       to!int(this.player_map_x),
+		       to!int(this.player_map_y),
+		       to!int(this.player_map_x + this.g_cosine[ this.player_arc ] * 10),
+		       to!int(this.player_map_y + this.g_sine[ this.player_arc ] * 10));
       
   } // draw_player_POV_on_overhead_map
 
   void render() {
     int vertical_grid;
-    int horizonal_grid;
+    int horizontal_grid;
 
     int dist_to_next_vertical_grid;
     int dist_to_next_horizontal_grid;
@@ -322,7 +325,7 @@ class RayCastWindow {
       cast_arc = ANGLE360 + cast_arc;
     }
 
-    for(cast_column= 0; cast_column < PROJECTION_WIDTH; cast_coumn++ ) {
+    for(cast_column= 0; cast_column < PROJECTION_WIDTH; cast_column++ ) {
       // Ray is between 0 to 180 degree (1,2 사분면)
       
       // Ray 가 아랫쪽을 향할 때
@@ -331,11 +334,11 @@ class RayCastWindow {
 	// wall) that is in front of the player (this is in pixel unit)
 	// ROUNDED DOWN
 	
-	horizontal_grid = floor( this.player_y / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
+	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE) * TILE_SIZE + TILE_SIZE);
 
 	// 다음 수평벽과의 거리 
 	dist_to_next_horizontal_grid = TILE_SIZE;
-	float x_temp = this.itangent[ cast_arc ] * (horizontal_grid - this.player_y);
+	float x_temp = this.g_itangent[ cast_arc ] * (horizontal_grid - this.player_y);
 
 	// we can get the vertical distance to that wall by
 	// (horizontalGrid-playerY)
@@ -347,10 +350,10 @@ class RayCastWindow {
 
       } else {
 	// RAY가 위쪽을 향할 때
-	horizontal_grid = floor( this.player_y / TILE_SIZE) * TILE_SIZE;
+	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE) * TILE_SIZE);
 	dist_to_next_horizontal_grid = -TILE_SIZE;
 
-	float x_temp = this.itangent[ cast_arc ] * ( horizontal_grid - this.player_y);
+	float x_temp = this.g_itangent[ cast_arc ] * ( horizontal_grid - this.player_y);
 	
 	x_intersection = x_temp + this.player_x;
 
@@ -368,9 +371,9 @@ class RayCastWindow {
 	// RAY를 수평 벽에 부딪힐때까지 이동함
 	dist_to_next_x_intersection = this.g_xstep[ cast_arc ];
 	while( true ) {
-	  x_grid_index = floor( x_intersection / TILE_SIZE );
-	  y_grid_index = floor( y_intersection / TILE_SIZE);
-	  int map_index = floor(y_grid_index * MAP_WIDTH + x_grid_index);
+	  x_grid_index = to!int(floor( x_intersection / TILE_SIZE ));
+	  y_grid_index = to!int(floor( y_intersection / TILE_SIZE));
+	  int map_index = y_grid_index * MAP_WIDTH + x_grid_index;
 
 
 	  // map 영역 보는 거리 제약 
@@ -380,12 +383,12 @@ class RayCastWindow {
 	    break;
 	  } else if (this.map[map_index] != 'O') {
 	    // grid 가 빈공간이 아니면 중지
-	    dist_to_horizontal_grid_being_hit = ( x_intersection - this.player_x ) * this.g_icosine[ to!int( castArc ) ];
+	    dist_to_horizontal_grid_being_hit = ( x_intersection - this.player_x ) * this.g_icosine[ to!int( cast_arc ) ];
 	    break;
 	  } else {
 	    // 그 외의 경우에는 다음 그리드로 계속 진행한다. 
 	    x_intersection += dist_to_next_x_intersection;
-	    horizonal_grid += dist_to_next_horizontal_grid;
+	    horizontal_grid += dist_to_next_horizontal_grid;
 	  }
 	}
       } // end of if( cast_arc == ANGLE0 || cast_arc == ANGLE100)
@@ -393,14 +396,14 @@ class RayCastWindow {
           
       // RAY가 오른쪽으로 향함 
       if (cast_arc < ANGLE90 || cast_arc > ANGLE270) {
-	vertical_grid = TILE_SIZE + floor(this.player_x / TILE_SIZE) * TILE_SIZE;
+	vertical_grid = to!int(TILE_SIZE + floor(this.player_x / TILE_SIZE) * TILE_SIZE);
 	dist_to_next_vertical_grid = TILE_SIZE;
 
-	flaot y_temp = this.g_tangent[ cast_arc ] * ( vertical_grid - this.player_x);
+	float y_temp = this.g_tangent[ cast_arc ] * ( vertical_grid - this.player_x);
 	y_intersection = y_temp + this.player_y;
       } else {
 	// RAY가 왼쪽으로 향함 
-	vertical_grid = floor(this.player_x / TILE_SIZE) * TILE_SIZE;
+	vertical_grid = to!int(floor(this.player_x / TILE_SIZE) * TILE_SIZE);
 	dist_to_next_vertical_grid = -TILE_SIZE;
 	float y_temp = this.g_itangent[ cast_arc ] * (vertical_grid - this.player_x);
 	y_intersection = y_temp + this.player_y;
@@ -412,10 +415,10 @@ class RayCastWindow {
 	dist_to_vertical_grid_being_hit = float.max;
 	while( true) {
 	  // 현재 검사할 map 위치 계산
-	  x_grid_index = floor( vertical_grid / TILE_SIZE );
-	  y_grid_index = floor( y_intersection / TILE_SIZE );
+	  x_grid_index = vertical_grid / TILE_SIZE;
+	  y_grid_index = to!int(floor(y_intersection / TILE_SIZE));
 
-	  int map_index = floor(y_grid_index * MAP_WIDTH + x_grid_index);
+	  int map_index = y_grid_index * MAP_WIDTH + x_grid_index;
 
 	  if ((x_grid_index >= MAP_WIDTH) ||
 	      (y_grid_index >= MAP_HEIGHT) ||
@@ -444,14 +447,14 @@ class RayCastWindow {
 	// the next function call (draw_ray_on_map()) is not a part of raycasting rendering part.
 	// it just draws the ray on the overhead map to illustrate the raycasting process
 	
-	this.draw_ray_on_overhead_map(x_intersection, horizontal_grid);
+	this.draw_ray_on_overhead_map(to!int(x_intersection), horizontal_grid);
 	dist = dist_to_horizontal_grid_being_hit;
       
       } else {
 	// else we use xray instread (meaning the vertical wall is closer than the horizontal wall)
 	// the next function call (draw_ray_on_map()) is not a part of raycasting rendering part.
 	// it just draws the ray on the overhead map to illustrate the raycasting process
-	this.draw_ray_on_overhead_map(vertical_grid, y_intersection);
+	this.draw_ray_on_overhead_map(vertical_grid, to!int(y_intersection));
 	dist = dist_to_vertical_grid_being_hit;
 
       }  // end of if( dist_to_horizontal_grid_being_hit < dist_to_vertical_grid_being_hit) 
@@ -461,8 +464,8 @@ class RayCastWindow {
 
       // projected wall height / wall height = player_dist_to_projection_plane / dist
       float projected_wall_height = WALL_HEIGHT * this.player_distance_to_projection_plane / dist;
-      bottom_of_wall = this.project_plance_y_center + (projected_wall_height * 0.5 );
-      top_of_wall = this.project_plance_y_center - (projected_wall_height * 0.5);
+      bottom_of_wall = this.project_plane_y_center + (projected_wall_height * 0.5 );
+      top_of_wall = this.project_plane_y_center - (projected_wall_height * 0.5);
 
       if (top_of_wall < 0) {
 	top_of_wall = 0;
@@ -476,14 +479,11 @@ class RayCastWindow {
       // 850 is arbitary value of the farthest distance.
 
       dist = floor(dist);
-      int color = 255 - min(max(0, to!int((dist / 750.0) * 255.0)), 255);
+      ubyte color = to!ubyte(255 - min(max(0, to!int((dist / 750.0) * 255.0)), 255));
       
       SDL_SetRenderDrawColour(this.renderer, color, color, color, 255);
-      SDL_DrawFillRectangle(this.renderer, 
-			    cast_column, 
-			    top_of_wall, 
-			    1, 
-			    (bottom_of_wall - top_of_wall) + 1);
+      SDL_Rect dst = {x: cast_column, y: to!int(top_of_wall), w: 1, h: to!int((bottom_of_wall - top_of_wall) + 1 ) };
+      SDL_RenderFillRect(this.renderer, &dst);
       
       // TRACE THE NEXT RAY
       cast_arc += 1;
