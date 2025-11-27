@@ -91,24 +91,24 @@ class RayCastWindow {
   float[] g_xstep    = [];
   float[] g_ystep    = [];
 
-  float player_x;
-  float player_y;
-  int player_arc;
-  float player_distance_to_projection_plane;
-  float player_height;
-  float player_speed;
-  float project_plane_y_center;
+  float player_x = 0;
+  float player_y = 0;
+  int player_arc = 0;
+  float player_distance_to_projection_plane = 0;
+  float player_height = 0;
+  float player_speed = 0;
+  float project_plane_y_center = 0;
 
   // keep player coordinates in the overhead map
-  float player_map_x;
-  float player_map_y;
-  float minimap_width;
+  float player_map_x = 0;
+  float player_map_y = 0;
+  float minimap_width = 0;
 
   // movement flag
-  bool key_up;
-  bool key_down;
-  bool key_left;
-  bool key_right;
+  bool key_up = false;
+  bool key_down = false;
+  bool key_left = false;
+  bool key_right = false;
 
   // 2차원 맵
   string map;
@@ -290,25 +290,25 @@ class RayCastWindow {
   } // draw_player_POV_on_overhead_map
 
   void render() {
-    int vertical_grid;
-    int horizontal_grid;
+    int vertical_grid = 0;
+    int horizontal_grid = 0;
 
-    int dist_to_next_vertical_grid;
-    int dist_to_next_horizontal_grid;
+    int dist_to_next_vertical_grid = 0;
+    int dist_to_next_horizontal_grid = 0;
     
-    float x_intersection;
-    float y_intersection;
+    float x_intersection = 0;
+    float y_intersection = 0;
     
-    float dist_to_next_x_intersection;
-    float dist_to_next_y_intersection;
+    float dist_to_next_x_intersection = 0;
+    float dist_to_next_y_intersection = 0;
 
-    int x_grid_index;  // current cell that the ray is in
-    int y_grid_index;
+    int x_grid_index = 0;  // current cell that the ray is in
+    int y_grid_index = 0;
 
-    float dist_to_vertical_grid_being_hit; // distance of the x and y ray intersections from the viewpoint
-    float dist_to_horizontal_grid_being_hit;
+    float dist_to_vertical_grid_being_hit = 0; // distance of the x and y ray intersections from the viewpoint
+    float dist_to_horizontal_grid_being_hit = 0;
 
-    int cast_arc, cast_column;
+    int cast_arc, cast_column = 0;
     
     cast_arc = this.player_arc;
     
@@ -436,10 +436,10 @@ class RayCastWindow {
       } // end of if (cast_arc == ANGLE90 || cast_arc == ANGLE270) 
 
       // DRAW WALL SLICE
-      float scale_factor;
-      float dist;
-      float top_of_wall; // used to computer the top and bottom of the silver
-      float bottom_of_wall; // will be the starting point of floor and celling 
+      float scale_factor = 0;
+      float dist = 0;
+      float top_of_wall = 0; // used to computer the top and bottom of the silver
+      float bottom_of_wall = 0; // will be the starting point of floor and celling 
 
       // determine which ray strikes a closer wall.
       // if yray distance to the wall is closer, the y_distance will be shorter than the x_distance
