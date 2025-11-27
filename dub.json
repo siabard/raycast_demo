@@ -1,0 +1,19 @@
+{
+    "authors": [
+	"Yeonho jang"
+    ],
+    "copyright": "Copyright © 2025, Yeonho jang",
+    "dependencies": {
+	"bindbc-sdl": "~>1.5"
+    },
+    "versions": [
+	"SDL_2_30", "SDL_Image_2_6"
+    ],
+    "subConfigurations": {
+	"bindbc-sdl": "dynamic"
+    },
+    "targetPath": "bin",
+    "description": "A raycast demo in D language",
+    "license": "MIT",
+    "name": "raycast_demo"
+}
