@@ -207,10 +207,6 @@ class RayCastWindow {
 
     this.map = MAP3;
 
-    foreach(xstep; this.g_xstep) {
-      write(xstep, ' ');
-    }
-
   } // void init_table;
 
 
