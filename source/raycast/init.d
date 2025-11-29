@@ -3,6 +3,7 @@ module raycast.init;
 import std.math;
 import std.conv;
 import std.algorithm;
+import std.stdio;
 
 import bindbc.sdl;
 
@@ -24,7 +25,7 @@ enum ANGLE180   = to!int(floor( ANGLE90 * 2.0f));
 enum ANGLE270   = to!int(floor( ANGLE90 * 3.0f));
 enum ANGLE360   = ANGLE60 * 6;
 enum ANGLE0     = 0;
-enum ANGLE5     = to!int(floor( ANGLE30 / 5.0f));
+enum ANGLE5     = to!int(floor( ANGLE30 / 6.0f));
 enum ANGLE10    = ANGLE5 * 2;
 enum ANGLE45    = ANGLE15 * 3;
 
@@ -205,6 +206,11 @@ class RayCastWindow {
     // End of fixing FISHBOWL distortion
 
     this.map = MAP3;
+
+    foreach(xstep; this.g_xstep) {
+      write(xstep, ' ');
+    }
+
   } // void init_table;
 
 
@@ -251,7 +257,7 @@ class RayCastWindow {
     int increment = 1;
 
     int row = 0;
-    for(row = 0; row < PROJECTION_WIDTH / 2; row += increment) {
+    for(row = 0; row < PROJECTION_HEIGHT / 2; row += increment) {
       SDL_SetRenderDrawColor(this.renderer, r, 125, 225, 255);
       SDL_RenderDrawLine(this.renderer, 0, row, PROJECTION_WIDTH, row);
       r -= increment;
@@ -259,7 +265,7 @@ class RayCastWindow {
 
     // color of ground 
     r = 22;
-    for(; row < PROJECTION_WIDTH; row += increment) {
+    for(; row < PROJECTION_HEIGHT; row += increment) {
       SDL_SetRenderDrawColor(this.renderer, r, 20, 20, 255);
       SDL_RenderDrawLine(this.renderer, 0, row, PROJECTION_WIDTH, row);
       r += increment;
@@ -289,7 +295,7 @@ class RayCastWindow {
       
   } // draw_player_POV_on_overhead_map
 
-  void render() {
+  void  draw_raycast() {
     int vertical_grid = 0;
     int horizontal_grid = 0;
 
@@ -405,7 +411,7 @@ class RayCastWindow {
 	// RAY가 왼쪽으로 향함 
 	vertical_grid = to!int(floor(this.player_x / TILE_SIZE) * TILE_SIZE);
 	dist_to_next_vertical_grid = -TILE_SIZE;
-	float y_temp = this.g_itangent[ cast_arc ] * (vertical_grid - this.player_x);
+	float y_temp = this.g_tangent[ cast_arc ] * (vertical_grid - this.player_x);
 	y_intersection = y_temp + this.player_y;
 	vertical_grid--;
       } // end of  if (cast_arc < ANGLE90 || cast_arc > ANGLE270) 
@@ -413,6 +419,8 @@ class RayCastWindow {
       // 수직으로 발사되는 경우 
       if (cast_arc == ANGLE90 || cast_arc == ANGLE270) {
 	dist_to_vertical_grid_being_hit = float.max;
+      } else {
+	dist_to_next_y_intersection = this.g_ystep[cast_arc];
 	while( true) {
 	  // 현재 검사할 map 위치 계산
 	  x_grid_index = vertical_grid / TILE_SIZE;
@@ -490,11 +498,18 @@ class RayCastWindow {
       if(cast_arc >= ANGLE360) {
 	cast_arc -= ANGLE360;
       }
-
-
     } // end of for(cast_column= 0; cast_column < PROJECTION_WIDTH; cast_coumn++ )
 
-  } // end of void render()
+  } // end of void draw_raycast
+
+
+  void render() {
+    this.draw_overhead_map();
+    this.draw_background();
+    this.draw_raycast();
+    this.draw_player_POV_on_overhead_map();
+    
+  }
 
 } // end of class
 

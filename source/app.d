@@ -37,7 +37,7 @@ int main()
 			    "RayCasting...", 
 			    SDL_WINDOWPOS_UNDEFINED, 
 			    SDL_WINDOWPOS_UNDEFINED,
-			    320,
+			    400,
 			    200,
 			    SDL_WINDOW_SHOWN );
   renderer = SDL_CreateRenderer(
@@ -66,6 +66,7 @@ int main()
     
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
+    
     
     raywin.render();
     
