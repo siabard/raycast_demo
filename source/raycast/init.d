@@ -224,9 +224,9 @@ class RayCastWindow {
 
 	if(this.map[row * MAP_WIDTH + col] == 'W') {
 	  // black color
-	  r = 0; 
-	  g = 0;
-	  b = 0;
+	  r = 80; 
+	  g = 80;
+	  b = 80;
 	}
 
 	SDL_Rect rect = {
@@ -336,7 +336,7 @@ class RayCastWindow {
 	// wall) that is in front of the player (this is in pixel unit)
 	// ROUNDED DOWN
 	
-	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE) * TILE_SIZE + TILE_SIZE);
+	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE)) * TILE_SIZE + TILE_SIZE;
 
 	// 다음 수평벽과의 거리 
 	dist_to_next_horizontal_grid = TILE_SIZE;
@@ -352,7 +352,7 @@ class RayCastWindow {
 
       } else {
 	// RAY가 위쪽을 향할 때
-	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE) * TILE_SIZE);
+	horizontal_grid = to!int(floor( this.player_y / TILE_SIZE)) * TILE_SIZE;
 	dist_to_next_horizontal_grid = -TILE_SIZE;
 
 	float x_temp = this.g_itangent[ cast_arc ] * ( horizontal_grid - this.player_y);
@@ -374,7 +374,7 @@ class RayCastWindow {
 	dist_to_next_x_intersection = this.g_xstep[ cast_arc ];
 	while( true ) {
 	  x_grid_index = to!int(floor( x_intersection / TILE_SIZE ));
-	  y_grid_index = to!int(floor( y_intersection / TILE_SIZE));
+	  y_grid_index = horizontal_grid / TILE_SIZE;
 	  int map_index = y_grid_index * MAP_WIDTH + x_grid_index;
 
 
@@ -385,7 +385,7 @@ class RayCastWindow {
 	    break;
 	  } else if (this.map[map_index] != 'O') {
 	    // grid 가 빈공간이 아니면 중지
-	    dist_to_horizontal_grid_being_hit = ( x_intersection - this.player_x ) * this.g_icosine[ to!int( cast_arc ) ];
+	    dist_to_horizontal_grid_being_hit = ( x_intersection - this.player_x ) * this.g_icosine[ cast_arc ];
 	    break;
 	  } else {
 	    // 그 외의 경우에는 다음 그리드로 계속 진행한다. 
@@ -398,14 +398,14 @@ class RayCastWindow {
           
       // RAY가 오른쪽으로 향함 
       if (cast_arc < ANGLE90 || cast_arc > ANGLE270) {
-	vertical_grid = to!int(TILE_SIZE + floor(this.player_x / TILE_SIZE) * TILE_SIZE);
+	vertical_grid = TILE_SIZE + to!int(floor(this.player_x / TILE_SIZE)) * TILE_SIZE;
 	dist_to_next_vertical_grid = TILE_SIZE;
 
 	float y_temp = this.g_tangent[ cast_arc ] * ( vertical_grid - this.player_x);
 	y_intersection = y_temp + this.player_y;
       } else {
 	// RAY가 왼쪽으로 향함 
-	vertical_grid = to!int(floor(this.player_x / TILE_SIZE) * TILE_SIZE);
+	vertical_grid = to!int(floor(this.player_x / TILE_SIZE)) * TILE_SIZE;
 	dist_to_next_vertical_grid = -TILE_SIZE;
 	float y_temp = this.g_tangent[ cast_arc ] * (vertical_grid - this.player_x);
 	y_intersection = y_temp + this.player_y;
@@ -447,6 +447,7 @@ class RayCastWindow {
 
       // determine which ray strikes a closer wall.
       // if yray distance to the wall is closer, the y_distance will be shorter than the x_distance
+
       if( dist_to_horizontal_grid_being_hit < dist_to_vertical_grid_being_hit) {
 	// the next function call (draw_ray_on_map()) is not a part of raycasting rendering part.
 	// it just draws the ray on the overhead map to illustrate the raycasting process
@@ -476,14 +477,14 @@ class RayCastWindow {
       }
 
       if (bottom_of_wall >= PROJECTION_HEIGHT) {
-	bottom_of_wall = PROJECTION_HEIGHT;
+	bottom_of_wall = PROJECTION_HEIGHT - 1;
       }
 
       // add simple shading so that farther wall slices appear darker;
       // 850 is arbitary value of the farthest distance.
 
       dist = floor(dist);
-      ubyte color = to!ubyte(255 - min(max(0, to!int((dist / 750.0) * 255.0)), 255));
+      ubyte color = to!ubyte(255 - min(max(0, (dist / 750.0) * 255.0), 255));
       
       SDL_SetRenderDrawColour(this.renderer, color, color, color, 255);
       SDL_Rect dst = {x: cast_column, y: to!int(top_of_wall), w: 1, h: to!int((bottom_of_wall - top_of_wall) + 1 ) };
@@ -505,6 +506,40 @@ class RayCastWindow {
     this.draw_raycast();
     this.draw_player_POV_on_overhead_map();
     
+  }
+
+  void update(ulong dt) {
+    float delta_time = dt / 1000.0f;
+
+    if(this.key_left) {
+
+      this.player_arc -= to!int(ANGLE180 * delta_time);
+      if(this.player_arc < ANGLE0) {
+	this.player_arc += ANGLE360;
+      }
+    }
+
+    if(this.key_right) {
+
+      this.player_arc += to!int(ANGLE180 * delta_time);
+      if(this.player_arc > ANGLE360) {
+	this.player_arc -= ANGLE360;
+      }
+    }
+
+    float player_x_dir = this.g_cosine[ this.player_arc ] ;
+    float player_y_dir = this.g_sine[   this.player_arc ];
+
+    if(this.key_up) {
+      this.player_x += round( player_x_dir + this.player_speed * delta_time );
+      this.player_y += round( player_y_dir + this.player_speed * delta_time );
+    }
+
+    if(this.key_down) {
+      this.player_x -= round( player_x_dir + this.player_speed * delta_time );
+      this.player_y -= round( player_y_dir + this.player_speed * delta_time );
+    }
+
   }
 
 } // end of class

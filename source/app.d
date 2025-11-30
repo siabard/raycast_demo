@@ -52,14 +52,55 @@ int main()
   bool is_running = true;
 
   RayCastWindow raywin = new RayCastWindow(renderer);
+  ulong last_tick = SDL_GetTicks64();
+  ulong current_tick = SDL_GetTicks64();
+  ulong dt = 0;
   raywin.init_table();
 
   while(is_running) {
-
+    
+    dt = current_tick - last_tick;
+    last_tick = current_tick;
+    
     while(SDL_PollEvent(&event)) {
 
       if(event.type == SDL_QUIT) {
 	is_running = false;
+      } else if(event.type == SDL_KEYDOWN) {
+	
+	switch(event.key.keysym.scancode) {
+	case SDL_SCANCODE_W:
+	  raywin.key_up = true;
+	  break;
+	case SDL_SCANCODE_A:
+	  raywin.key_left = true;
+	  break;
+	case SDL_SCANCODE_S:
+	  raywin.key_down = true;
+	  break;
+	case SDL_SCANCODE_D:
+	  raywin.key_right = true;
+	  break;
+	default:
+	  break;
+	}
+      } else if(event.type == SDL_KEYUP) {
+	switch(event.key.keysym.scancode) {
+	case SDL_SCANCODE_W:
+	  raywin.key_up = false;
+	  break;
+	case SDL_SCANCODE_A:
+	  raywin.key_left = false;
+	  break;
+	case SDL_SCANCODE_S:
+	  raywin.key_down = false;
+	  break;
+	case SDL_SCANCODE_D:
+	  raywin.key_right = false;
+	  break;
+	default:
+	  break;
+	}
       }
       
     }
@@ -67,10 +108,13 @@ int main()
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     
-    
+
+    raywin.update(dt);
     raywin.render();
     
     SDL_RenderPresent(renderer);
+
+    current_tick = SDL_GetTicks64();
   }
   
 
