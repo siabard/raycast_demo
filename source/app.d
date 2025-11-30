@@ -52,10 +52,12 @@ int main()
   bool is_running = true;
 
   RayCastWindow raywin = new RayCastWindow(renderer);
+  raywin.init_table();
+  raywin.load_texture("./assets/tile2.png");
+
   ulong last_tick = SDL_GetTicks64();
   ulong current_tick = SDL_GetTicks64();
   ulong dt = 0;
-  raywin.init_table();
 
   while(is_running) {
     

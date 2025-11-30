@@ -4,6 +4,7 @@ import std.math;
 import std.conv;
 import std.algorithm;
 import std.stdio;
+import std.string;
 
 import bindbc.sdl;
 
@@ -113,6 +114,9 @@ class RayCastWindow {
 
   // 2차원 맵
   string map;
+
+  // texture
+  SDL_Texture* texture;
   
   this(SDL_Renderer* renderer) {
     this.renderer = renderer;
@@ -127,6 +131,12 @@ class RayCastWindow {
     // Screen 높이의 절반 
     this.project_plane_y_center = PROJECTION_HEIGHT / 2.0f;
     
+  }
+
+  ~this() {
+    if(texture != null) {
+      SDL_DestroyTexture(texture);
+    }
   }
 
   void init_table() {
@@ -444,6 +454,7 @@ class RayCastWindow {
       float dist = 0;
       float top_of_wall = 0; // used to computer the top and bottom of the silver
       float bottom_of_wall = 0; // will be the starting point of floor and celling 
+      int xoffset = 0;
 
       // determine which ray strikes a closer wall.
       // if yray distance to the wall is closer, the y_distance will be shorter than the x_distance
@@ -454,6 +465,7 @@ class RayCastWindow {
 	
 	this.draw_ray_on_overhead_map(to!int(x_intersection), horizontal_grid);
 	dist = dist_to_horizontal_grid_being_hit;
+	xoffset = to!int(x_intersection) % TILE_SIZE;
       
       } else {
 	// else we use xray instread (meaning the vertical wall is closer than the horizontal wall)
@@ -461,6 +473,7 @@ class RayCastWindow {
 	// it just draws the ray on the overhead map to illustrate the raycasting process
 	this.draw_ray_on_overhead_map(vertical_grid, to!int(y_intersection));
 	dist = dist_to_vertical_grid_being_hit;
+	xoffset = to!int(y_intersection) % TILE_SIZE;
 
       }  // end of if( dist_to_horizontal_grid_being_hit < dist_to_vertical_grid_being_hit) 
 
@@ -472,6 +485,7 @@ class RayCastWindow {
       bottom_of_wall = this.project_plane_y_center + (projected_wall_height * 0.5 );
       top_of_wall = this.project_plane_y_center - (projected_wall_height * 0.5);
 
+      /*
       if (top_of_wall < 0) {
 	top_of_wall = 0;
       }
@@ -479,17 +493,22 @@ class RayCastWindow {
       if (bottom_of_wall >= PROJECTION_HEIGHT) {
 	bottom_of_wall = PROJECTION_HEIGHT - 1;
       }
+      */
 
       // add simple shading so that farther wall slices appear darker;
       // 850 is arbitary value of the farthest distance.
 
       dist = floor(dist);
+      /*
       ubyte color = to!ubyte(255 - min(max(0, (dist / 750.0) * 255.0), 255));
       
       SDL_SetRenderDrawColour(this.renderer, color, color, color, 255);
       SDL_Rect dst = {x: cast_column, y: to!int(top_of_wall), w: 1, h: to!int((bottom_of_wall - top_of_wall) + 1 ) };
       SDL_RenderFillRect(this.renderer, &dst);
-      
+      */
+
+      this.draw_texture(cast_column, to!int(top_of_wall), 1, to!int((bottom_of_wall - top_of_wall) + 1),  xoffset);
+
       // TRACE THE NEXT RAY
       cast_arc += 1;
       if(cast_arc >= ANGLE360) {
@@ -499,6 +518,28 @@ class RayCastWindow {
 
   } // end of void draw_raycast
 
+
+  void draw_texture(int x, int y, int width, int height, int offset) {
+
+    SDL_Rect src_rect = {
+      x: offset, 
+      y: 0, 
+      w: 1, 
+      h: TILE_SIZE
+    };
+
+    SDL_Rect dst_rect = {
+      x: x,
+      y: y,
+      w: width, 
+      h: height
+    };
+    SDL_RenderCopy(this.renderer, 
+		   this.texture,
+		   &src_rect,
+		   &dst_rect
+		   );
+  }
 
   void render() {
     this.draw_overhead_map();
@@ -513,7 +554,7 @@ class RayCastWindow {
 
     if(this.key_left) {
 
-      this.player_arc -= to!int(ANGLE180 * delta_time);
+      this.player_arc -= to!int(ANGLE60 * delta_time);
       if(this.player_arc < ANGLE0) {
 	this.player_arc += ANGLE360;
       }
@@ -521,7 +562,7 @@ class RayCastWindow {
 
     if(this.key_right) {
 
-      this.player_arc += to!int(ANGLE180 * delta_time);
+      this.player_arc += to!int(ANGLE60 * delta_time);
       if(this.player_arc > ANGLE360) {
 	this.player_arc -= ANGLE360;
       }
@@ -541,6 +582,11 @@ class RayCastWindow {
     }
 
   }
+
+  void load_texture(string path) {
+    this.texture = IMG_LoadTexture(this.renderer, std.string.toStringz(path));
+
+  } // end of load_texture(string path)
 
 } // end of class
 
